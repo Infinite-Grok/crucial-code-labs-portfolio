@@ -70,7 +70,7 @@ export default function Home() {
   ]
 
   return (
-    <div style={{ fontFamily: 'Inter, sans-serif', margin: 0, padding: 0 }}>
+    <div style={{ fontFamily: 'Inter, sans-serif', margin: 0, padding: 0, overflowX: 'hidden' }}>
       {/* Navigation */}
       <nav style={{
         position: 'fixed',
@@ -89,10 +89,10 @@ export default function Home() {
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          padding: '1rem 1.5rem'
+          padding: '1rem 1rem'
         }}>
           <div style={{
-            fontSize: '1.5rem',
+            fontSize: 'clamp(1.2rem, 3vw, 1.5rem)',
             fontWeight: '700',
             fontFamily: 'monospace'
           }}>
@@ -103,7 +103,7 @@ export default function Home() {
           </div>
           <div style={{
             display: 'flex',
-            gap: '2rem'
+            gap: '1.5rem'
           }} className="hidden-mobile">
             {['Home', 'About', 'Services', 'Portfolio', 'Contact'].map((item) => (
               <a 
@@ -113,6 +113,7 @@ export default function Home() {
                   color: '#374151',
                   textDecoration: 'none',
                   fontWeight: '500',
+                  fontSize: '0.9rem',
                   transition: 'color 0.3s ease'
                 }}
                 onMouseOver={(e) => (e.target as HTMLElement).style.color = '#2563eb'}
@@ -138,7 +139,7 @@ export default function Home() {
         {/* Mobile menu */}
         {mobileMenuOpen && (
           <div style={{
-            padding: '1rem 1.5rem',
+            padding: '1rem 1rem',
             borderTop: '1px solid #e5e7eb',
             background: 'white'
           }}>
@@ -148,9 +149,10 @@ export default function Home() {
                 href={`#${item.toLowerCase()}`} 
                 style={{
                   display: 'block',
-                  padding: '0.5rem 0',
+                  padding: '0.75rem 0',
                   color: '#374151',
-                  textDecoration: 'none'
+                  textDecoration: 'none',
+                  borderBottom: '1px solid #f3f4f6'
                 }}
                 onClick={() => setMobileMenuOpen(false)}
               >
@@ -172,24 +174,26 @@ export default function Home() {
           color: 'white',
           textAlign: 'center',
           paddingTop: '80px',
+          padding: '80px 1rem 4rem 1rem',
           backgroundImage: `linear-gradient(rgba(15, 23, 42, 0.8), rgba(30, 58, 138, 0.8)), url('https://images.unsplash.com/photo-1451187580459-43490279c0fa?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80')`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
-          backgroundAttachment: 'fixed'
+          backgroundAttachment: 'scroll'
         }}
       >
-        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 1.5rem' }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto', width: '100%' }}>
           <motion.h1 
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
             style={{
-              fontSize: 'clamp(2.5rem, 5vw, 4rem)',
+              fontSize: 'clamp(2rem, 8vw, 4rem)',
               fontWeight: '700',
-              lineHeight: '1.1',
+              lineHeight: '1.2',
               marginBottom: '1.5rem',
-              color: 'white'
+              color: 'white',
+              wordBreak: 'break-word'
             }}
           >
             Revolutionizing Business with <span style={{ color: '#60a5fa' }}>AI</span>
@@ -199,11 +203,12 @@ export default function Home() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3, duration: 0.8 }}
             style={{ 
-              fontSize: 'clamp(1.125rem, 2.5vw, 1.5rem)',
+              fontSize: 'clamp(1rem, 4vw, 1.5rem)',
               maxWidth: '800px', 
               margin: '0 auto 2rem auto',
               color: 'rgba(255, 255, 255, 0.9)',
-              lineHeight: '1.6'
+              lineHeight: '1.6',
+              padding: '0 1rem'
             }}
           >
             We build intelligent software solutions using advanced AI development tools and proven methodologies. 
@@ -218,7 +223,8 @@ export default function Home() {
               gap: '1rem',
               justifyContent: 'center',
               flexWrap: 'wrap',
-              marginTop: '2rem'
+              marginTop: '2rem',
+              padding: '0 1rem'
             }}
           >
             <a 
@@ -226,15 +232,17 @@ export default function Home() {
               style={{
                 background: '#2563eb',
                 color: 'white',
-                padding: '1rem 2rem',
+                padding: 'clamp(0.75rem, 3vw, 1rem) clamp(1.5rem, 5vw, 2rem)',
                 borderRadius: '0.5rem',
                 textDecoration: 'none',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '0.5rem',
                 fontWeight: '600',
+                fontSize: 'clamp(0.9rem, 3vw, 1rem)',
                 transition: 'all 0.3s ease',
-                boxShadow: '0 4px 14px 0 rgba(37, 99, 235, 0.39)'
+                boxShadow: '0 4px 14px 0 rgba(37, 99, 235, 0.39)',
+                minWidth: 'fit-content'
               }}
               onMouseOver={(e) => {
                 (e.target as HTMLElement).style.background = '#1d4ed8';
@@ -253,7 +261,7 @@ export default function Home() {
               style={{
                 background: 'transparent',
                 color: 'white',
-                padding: '1rem 2rem',
+                padding: 'clamp(0.75rem, 3vw, 1rem) clamp(1.5rem, 5vw, 2rem)',
                 border: '2px solid white',
                 borderRadius: '0.5rem',
                 textDecoration: 'none',
@@ -261,7 +269,9 @@ export default function Home() {
                 alignItems: 'center',
                 gap: '0.5rem',
                 fontWeight: '600',
-                transition: 'all 0.3s ease'
+                fontSize: 'clamp(0.9rem, 3vw, 1rem)',
+                transition: 'all 0.3s ease',
+                minWidth: 'fit-content'
               }}
               onMouseOver={(e) => {
                 (e.target as HTMLElement).style.background = 'white';
@@ -280,13 +290,13 @@ export default function Home() {
 
       {/* About Section */}
       <section id="about" style={{
-        padding: '5rem 0',
+        padding: '4rem 1rem',
         background: '#f8fafc'
       }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 1.5rem' }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
             gap: '3rem',
             alignItems: 'center'
           }}>
@@ -303,15 +313,16 @@ export default function Home() {
             </div>
             <div>
               <h2 style={{
-                fontSize: 'clamp(2rem, 4vw, 3rem)',
+                fontSize: 'clamp(1.8rem, 6vw, 3rem)',
                 fontWeight: '700',
                 marginBottom: '2rem',
-                color: '#1f2937'
+                color: '#1f2937',
+                lineHeight: '1.2'
               }}>
                 About <span style={{ color: '#2563eb' }}>CrucialCodeLabs</span>
               </h2>
               <p style={{
-                fontSize: '1.125rem',
+                fontSize: 'clamp(1rem, 2.5vw, 1.125rem)',
                 marginBottom: '1.5rem',
                 color: '#4b5563',
                 lineHeight: '1.7'
@@ -320,7 +331,7 @@ export default function Home() {
                 Our development approach combines proven software engineering principles with cutting-edge AI technologies.
               </p>
               <p style={{
-                fontSize: '1.125rem',
+                fontSize: 'clamp(1rem, 2.5vw, 1.125rem)',
                 marginBottom: '2rem',
                 color: '#4b5563',
                 lineHeight: '1.7'
@@ -330,27 +341,30 @@ export default function Home() {
               </p>
               <div style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(3, 1fr)',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
                 gap: '1rem'
               }}>
                 {stats.map((stat, index) => (
                   <div key={index} style={{
                     background: 'white',
-                    padding: '1.5rem',
+                    padding: 'clamp(1rem, 3vw, 1.5rem)',
                     borderRadius: '1rem',
                     boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)',
                     textAlign: 'center',
                     transition: 'all 0.3s ease'
                   }}>
                     <h3 style={{
-                      fontSize: '1.5rem',
+                      fontSize: 'clamp(1.2rem, 4vw, 1.5rem)',
                       fontWeight: '700',
                       marginBottom: '0.5rem',
-                      color: '#2563eb'
+                      color: '#2563eb',
+                      lineHeight: '1.1'
                     }}>{stat.number}</h3>
                     <p style={{
                       color: '#6b7280',
-                      fontSize: '0.875rem'
+                      fontSize: 'clamp(0.75rem, 2vw, 0.875rem)',
+                      lineHeight: '1.3',
+                      margin: 0
                     }}>{stat.label}</p>
                   </div>
                 ))}
@@ -364,28 +378,29 @@ export default function Home() {
       <section 
         id="services" 
         style={{
-          padding: '5rem 0',
+          padding: '4rem 1rem',
           color: 'white',
           backgroundImage: `linear-gradient(rgba(15, 23, 42, 0.9), rgba(30, 58, 138, 0.9)), url('https://images.unsplash.com/photo-1460925895917-afdab827c52f?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80')`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
-          backgroundAttachment: 'fixed'
+          backgroundAttachment: 'scroll'
         }}
       >
-        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 1.5rem' }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
           <h2 style={{
-            fontSize: 'clamp(2rem, 4vw, 3rem)',
+            fontSize: 'clamp(1.8rem, 6vw, 3rem)',
             fontWeight: '700',
             marginBottom: '3rem',
             textAlign: 'center',
-            color: 'white'
+            color: 'white',
+            lineHeight: '1.2'
           }}>
             Our <span style={{ color: '#60a5fa' }}>Services</span>
           </h2>
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
             gap: '2rem'
           }}>
             {services.map((service, index) => {
@@ -401,7 +416,7 @@ export default function Home() {
                     color: '#1f2937',
                     backdropFilter: 'blur(10px)',
                     border: '1px solid rgba(37, 99, 235, 0.2)',
-                    padding: '2rem',
+                    padding: 'clamp(1.5rem, 4vw, 2rem)',
                     borderRadius: '1rem',
                     transition: 'all 0.3s ease',
                     boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)'
@@ -424,20 +439,23 @@ export default function Home() {
                     <Icon size={48} />
                   </div>
                   <h3 style={{
-                    fontSize: '1.25rem',
+                    fontSize: 'clamp(1.1rem, 3vw, 1.25rem)',
                     fontWeight: '700',
                     marginBottom: '1rem',
-                    color: '#1f2937'
+                    color: '#1f2937',
+                    lineHeight: '1.3'
                   }}>{service.title}</h3>
                   <p style={{
                     color: '#2563eb',
                     marginBottom: '1rem',
-                    fontSize: '1.125rem',
+                    fontSize: 'clamp(1rem, 2.5vw, 1.125rem)',
                     fontWeight: '600'
                   }}>{service.price}</p>
                   <p style={{
                     color: '#4b5563',
-                    lineHeight: '1.6'
+                    lineHeight: '1.6',
+                    fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                    margin: 0
                   }}>{service.description}</p>
                 </motion.div>
               )
@@ -448,21 +466,22 @@ export default function Home() {
 
       {/* Our Approach Section */}
       <section style={{
-        padding: '5rem 0',
+        padding: '4rem 1rem',
         background: '#f8fafc',
         textAlign: 'center'
       }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 1.5rem' }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
           <h2 style={{
-            fontSize: 'clamp(2rem, 4vw, 3rem)',
+            fontSize: 'clamp(1.8rem, 6vw, 3rem)',
             fontWeight: '700',
             marginBottom: '2rem',
-            color: '#1f2937'
+            color: '#1f2937',
+            lineHeight: '1.2'
           }}>
             Our <span style={{ color: '#2563eb' }}>Development</span> Approach
           </h2>
           <p style={{
-            fontSize: '1.25rem',
+            fontSize: 'clamp(1rem, 3vw, 1.25rem)',
             marginBottom: '3rem',
             maxWidth: '800px',
             margin: '0 auto 3rem auto',
@@ -479,7 +498,7 @@ export default function Home() {
           }}>
             <div style={{
               background: 'white',
-              padding: '2rem',
+              padding: 'clamp(1.5rem, 4vw, 2rem)',
               borderRadius: '1rem',
               boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)',
               transition: 'all 0.3s ease'
@@ -493,19 +512,22 @@ export default function Home() {
                 <Code size={64} />
               </div>
               <h3 style={{
-                fontSize: '1.25rem',
+                fontSize: 'clamp(1.1rem, 3vw, 1.25rem)',
                 fontWeight: '700',
                 marginBottom: '1rem',
-                color: '#1f2937'
+                color: '#1f2937',
+                lineHeight: '1.3'
               }}>Modern Development Practices</h3>
               <p style={{
                 color: '#6b7280',
-                lineHeight: '1.6'
+                lineHeight: '1.6',
+                fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                margin: 0
               }}>We use contemporary development tools and AI-assisted workflows to build software faster without compromising quality.</p>
             </div>
             <div style={{
               background: 'white',
-              padding: '2rem',
+              padding: 'clamp(1.5rem, 4vw, 2rem)',
               borderRadius: '1rem',
               boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)',
               transition: 'all 0.3s ease'
@@ -519,19 +541,22 @@ export default function Home() {
                 <Users size={64} />
               </div>
               <h3 style={{
-                fontSize: '1.25rem',
+                fontSize: 'clamp(1.1rem, 3vw, 1.25rem)',
                 fontWeight: '700',
                 marginBottom: '1rem',
-                color: '#1f2937'
+                color: '#1f2937',
+                lineHeight: '1.3'
               }}>Client-Focused Solutions</h3>
               <p style={{
                 color: '#6b7280',
-                lineHeight: '1.6'
+                lineHeight: '1.6',
+                fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                margin: 0
               }}>Every solution is designed around your specific business requirements and existing infrastructure.</p>
             </div>
             <div style={{
               background: 'white',
-              padding: '2rem',
+              padding: 'clamp(1.5rem, 4vw, 2rem)',
               borderRadius: '1rem',
               boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)',
               transition: 'all 0.3s ease'
@@ -545,14 +570,17 @@ export default function Home() {
                 <Zap size={64} />
               </div>
               <h3 style={{
-                fontSize: '1.25rem',
+                fontSize: 'clamp(1.1rem, 3vw, 1.25rem)',
                 fontWeight: '700',
                 marginBottom: '1rem',
-                color: '#1f2937'
+                color: '#1f2937',
+                lineHeight: '1.3'
               }}>Proven Implementation</h3>
               <p style={{
                 color: '#6b7280',
-                lineHeight: '1.6'
+                lineHeight: '1.6',
+                fontSize: 'clamp(0.9rem, 2vw, 1rem)',
+                margin: 0
               }}>We follow established software engineering practices and testing methodologies to ensure reliable deployments.</p>
             </div>
           </div>
@@ -563,23 +591,24 @@ export default function Home() {
       <section 
         id="contact" 
         style={{
-          padding: '5rem 0',
+          padding: '4rem 1rem',
           color: 'white',
           backgroundImage: `linear-gradient(rgba(15, 23, 42, 0.9), rgba(30, 58, 138, 0.9)), url('https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80')`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
-          backgroundAttachment: 'fixed'
+          backgroundAttachment: 'scroll'
         }}
       >
-        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 1.5rem' }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
           <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
             <h2 style={{
-              fontSize: 'clamp(2rem, 4vw, 3rem)',
+              fontSize: 'clamp(1.8rem, 6vw, 3rem)',
               fontWeight: '700',
               marginBottom: '2rem',
               textAlign: 'center',
-              color: 'white'
+              color: 'white',
+              lineHeight: '1.2'
             }}>
               Get in <span style={{ color: '#60a5fa' }}>Touch</span>
             </h2>
@@ -588,7 +617,7 @@ export default function Home() {
               marginBottom: '3rem',
               maxWidth: '600px',
               margin: '0 auto 3rem auto',
-              fontSize: '1.25rem',
+              fontSize: 'clamp(1rem, 3vw, 1.25rem)',
               lineHeight: '1.7',
               color: 'rgba(255, 255, 255, 0.9)'
             }}>
@@ -597,12 +626,12 @@ export default function Home() {
             
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
               gap: '3rem'
             }}>
               <div>
                 <h3 style={{
-                  fontSize: '1.5rem',
+                  fontSize: 'clamp(1.3rem, 4vw, 1.5rem)',
                   fontWeight: '700',
                   marginBottom: '2rem',
                   color: 'white'
@@ -611,22 +640,24 @@ export default function Home() {
                   <div style={{
                     display: 'flex',
                     alignItems: 'center',
-                    marginBottom: '1rem'
+                    marginBottom: '1rem',
+                    flexWrap: 'wrap'
                   }}>
-                    <Mail size={24} style={{ marginRight: '1rem', color: '#60a5fa' }} />
-                    <p style={{ fontSize: '1.125rem' }}>contact@crucialcodelabs.com</p>
+                    <Mail size={24} style={{ marginRight: '1rem', color: '#60a5fa', flexShrink: 0 }} />
+                    <p style={{ fontSize: 'clamp(1rem, 2.5vw, 1.125rem)', margin: 0, wordBreak: 'break-word' }}>contact@crucialcodelabs.com</p>
                   </div>
                   <div style={{
                     display: 'flex',
-                    alignItems: 'center'
+                    alignItems: 'center',
+                    flexWrap: 'wrap'
                   }}>
-                    <Github size={24} style={{ marginRight: '1rem', color: '#60a5fa' }} />
-                    <p style={{ fontSize: '1.125rem' }}>github.com/crucialcodelabs</p>
+                    <Github size={24} style={{ marginRight: '1rem', color: '#60a5fa', flexShrink: 0 }} />
+                    <p style={{ fontSize: 'clamp(1rem, 2.5vw, 1.125rem)', margin: 0, wordBreak: 'break-word' }}>github.com/crucialcodelabs</p>
                   </div>
                 </div>
                 
                 <h3 style={{
-                  fontSize: '1.5rem',
+                  fontSize: 'clamp(1.3rem, 4vw, 1.5rem)',
                   fontWeight: '700',
                   marginBottom: '1.5rem',
                   color: 'white'
@@ -647,7 +678,7 @@ export default function Home() {
                     <label style={{
                       display: 'block',
                       marginBottom: '0.5rem',
-                      fontSize: '1.125rem',
+                      fontSize: 'clamp(1rem, 2.5vw, 1.125rem)',
                       fontWeight: '500',
                       color: 'white'
                     }}>Name</label>
@@ -658,10 +689,11 @@ export default function Home() {
                         padding: '0.75rem',
                         borderRadius: '0.5rem',
                         color: 'white',
-                        fontSize: '1rem',
+                        fontSize: 'clamp(0.9rem, 2vw, 1rem)',
                         background: 'rgba(255, 255, 255, 0.1)',
                         backdropFilter: 'blur(10px)',
-                        border: '1px solid rgba(255, 255, 255, 0.2)'
+                        border: '1px solid rgba(255, 255, 255, 0.2)',
+                        boxSizing: 'border-box'
                       }}
                       placeholder="Your name"
                     />
@@ -670,7 +702,7 @@ export default function Home() {
                     <label style={{
                       display: 'block',
                       marginBottom: '0.5rem',
-                      fontSize: '1.125rem',
+                      fontSize: 'clamp(1rem, 2.5vw, 1.125rem)',
                       fontWeight: '500',
                       color: 'white'
                     }}>Email</label>
@@ -681,10 +713,11 @@ export default function Home() {
                         padding: '0.75rem',
                         borderRadius: '0.5rem',
                         color: 'white',
-                        fontSize: '1rem',
+                        fontSize: 'clamp(0.9rem, 2vw, 1rem)',
                         background: 'rgba(255, 255, 255, 0.1)',
                         backdropFilter: 'blur(10px)',
-                        border: '1px solid rgba(255, 255, 255, 0.2)'
+                        border: '1px solid rgba(255, 255, 255, 0.2)',
+                        boxSizing: 'border-box'
                       }}
                       placeholder="Your email"
                     />
@@ -693,7 +726,7 @@ export default function Home() {
                     <label style={{
                       display: 'block',
                       marginBottom: '0.5rem',
-                      fontSize: '1.125rem',
+                      fontSize: 'clamp(1rem, 2.5vw, 1.125rem)',
                       fontWeight: '500',
                       color: 'white'
                     }}>Message</label>
@@ -704,11 +737,12 @@ export default function Home() {
                         padding: '0.75rem',
                         borderRadius: '0.5rem',
                         color: 'white',
-                        fontSize: '1rem',
+                        fontSize: 'clamp(0.9rem, 2vw, 1rem)',
                         resize: 'none',
                         background: 'rgba(255, 255, 255, 0.1)',
                         backdropFilter: 'blur(10px)',
-                        border: '1px solid rgba(255, 255, 255, 0.2)'
+                        border: '1px solid rgba(255, 255, 255, 0.2)',
+                        boxSizing: 'border-box'
                       }}
                       placeholder="Tell us about your project..."
                     />
@@ -719,11 +753,11 @@ export default function Home() {
                       width: '100%',
                       background: '#2563eb',
                       color: 'white',
-                      padding: '1rem 2rem',
+                      padding: 'clamp(0.75rem, 3vw, 1rem) 2rem',
                       borderRadius: '0.5rem',
                       border: 'none',
                       fontWeight: '600',
-                      fontSize: '1rem',
+                      fontSize: 'clamp(0.9rem, 2vw, 1rem)',
                       cursor: 'pointer',
                       transition: 'all 0.3s ease'
                     }}
@@ -743,21 +777,23 @@ export default function Home() {
       <footer style={{
         background: '#1f2937',
         color: 'white',
-        padding: '3rem 0',
+        padding: '3rem 1rem',
         borderTop: '1px solid #374151'
       }}>
-        <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 1.5rem' }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
           <div style={{
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
             flexWrap: 'wrap',
-            gap: '1rem'
+            gap: '1rem',
+            textAlign: 'center'
           }}>
             <div style={{
-              fontSize: '1.5rem',
+              fontSize: 'clamp(1.2rem, 4vw, 1.5rem)',
               fontWeight: '700',
-              fontFamily: 'monospace'
+              fontFamily: 'monospace',
+              flex: '1 1 auto'
             }}>
               <span style={{ 
                 color: '#60a5fa',
@@ -768,15 +804,17 @@ export default function Home() {
                 textShadow: '0 0 20px rgba(255, 255, 255, 0.3)'
               }}>CodeLabs{"}"}</span>
             </div>
-            <div style={{ textAlign: 'center' }}>
-              <p style={{ color: '#9ca3af' }}>&copy; 2025 CrucialCodeLabs. All rights reserved.</p>
+            <div style={{ flex: '1 1 auto' }}>
+              <p style={{ color: '#9ca3af', margin: 0, fontSize: 'clamp(0.8rem, 2vw, 1rem)' }}>&copy; 2025 CrucialCodeLabs. All rights reserved.</p>
             </div>
             <div style={{
               display: 'flex',
-              gap: '1.5rem'
+              gap: '1.5rem',
+              flex: '1 1 auto',
+              justifyContent: 'center'
             }}>
-              <a href="#" style={{ color: '#9ca3af', textDecoration: 'none' }}>Privacy Policy</a>
-              <a href="#" style={{ color: '#9ca3af', textDecoration: 'none' }}>Terms of Service</a>
+              <a href="#" style={{ color: '#9ca3af', textDecoration: 'none', fontSize: 'clamp(0.8rem, 2vw, 1rem)' }}>Privacy Policy</a>
+              <a href="#" style={{ color: '#9ca3af', textDecoration: 'none', fontSize: 'clamp(0.8rem, 2vw, 1rem)' }}>Terms of Service</a>
             </div>
           </div>
         </div>
@@ -796,7 +834,7 @@ export default function Home() {
           style={{
             background: '#2563eb',
             color: 'white',
-            padding: '1rem',
+            padding: 'clamp(0.75rem, 3vw, 1rem)',
             borderRadius: '50%',
             border: 'none',
             cursor: 'pointer',
@@ -830,6 +868,9 @@ export default function Home() {
         input:focus, textarea:focus {
           outline: none;
           border-color: #3b82f6;
+        }
+        * {
+          box-sizing: border-box;
         }
       `}</style>
     </div>
