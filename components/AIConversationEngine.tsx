@@ -39,18 +39,11 @@ interface LeadIntelligence {
 }
 
 export default class AIConversationEngine {
-  private apiKey: string | undefined
-  private baseURL = 'https://api.together.xyz/v1/chat/completions'
+  private proxyURL = 'https://crucial-code-labs-grok-proxy.infinitegrok.workers.dev/' // Replace with YOUR worker URL
 
   constructor() {
-  this.apiKey = process.env.NEXT_PUBLIC_TOGETHER_API_KEY
-  
-  // TEMPORARY DEBUG - REMOVE AFTER TESTING
-  console.log('🔍 Environment Debug:')
-  console.log('API Key from env:', this.apiKey ? 'EXISTS' : 'MISSING')
-  console.log('API Key first 10 chars:', this.apiKey?.substring(0, 10))
-  console.log('All env vars:', Object.keys(process.env).filter(k => k.startsWith('NEXT_PUBLIC')))
-}
+    console.log('🔍 Using Cloudflare Worker proxy for Grok API mobile compatibility')
+  }
 
   private isMobile(): boolean {
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
@@ -123,47 +116,126 @@ RESPONSE GUIDELINES:
 Remember: You're not just qualifying leads - you're demonstrating the kind of intelligent, thoughtful consultation they'll receive if they work with CrucialCodeLabs.`
   }
 
-  private async callTogetherAPI(messages: Array<{role: string; content: string}>, systemPrompt: string, maxTokens: number = 1000): Promise<string> {
-    if (!this.apiKey) {
-      throw new Error('Together API key not configured')
-    }
+  private getAnalysisPrompt(conversation: Message[], currentLeadData: LeadData): string {
+    const lastUserMessage = conversation.filter(m => !m.isBot).pop()?.content || ''
+    
+    return `Analyze this conversation for lead qualification. Focus on the user's latest message and overall conversation context.
 
+USER'S LATEST MESSAGE: "${lastUserMessage}"
+
+CURRENT LEAD DATA: ${JSON.stringify(currentLeadData)}
+
+CONVERSATION HISTORY: ${conversation.map(m => `${m.isBot ? 'AI' : 'User'}: ${m.content}`).join('\n')}
+
+Analyze and return ONLY a valid JSON object with this exact structure:
+{
+  "projectType": "detected project category (e.g., 'AI Integration', 'Custom Software', 'E-commerce Platform')",
+  "complexityScore": number from 1-10,
+  "budgetSignals": ["array", "of", "budget", "indicators", "found"],
+  "urgencyIndicators": ["array", "of", "urgency", "signals"],
+  "technicalSophistication": number from 1-10,
+  "decisionAuthority": "high" | "medium" | "low",
+  "leadScore": number from 0-100,
+  "nextBestQuestion": "most valuable follow-up question to ask",
+  "conversationPhase": "discovery" | "qualification" | "closing",
+  "recommendedAction": "continue" | "qualify_budget" | "book_consultation" | "redirect"
+}
+
+SCORING CRITERIA:
+- Budget indicators: Company mentions, team size, "investment", "budget", dollar amounts (+20-40 points)
+- Project complexity: AI/ML/automation (+30), custom software (+20), integrations (+15)
+- Timeline urgency: ASAP/deadline (+20), months (+10), flexible (+5)
+- Authority: CEO/CTO/founder (+15), technical lead (+10), researcher (+5)
+- Technical sophistication: APIs/integrations/scalability mentioned (+10)
+
+CONVERSATION PHASES:
+- discovery: Learning about their challenge (first 1-3 exchanges)
+- qualification: Understanding scope/budget/timeline (middle exchanges)
+- closing: Moving toward consultation booking (qualified leads 60+ points)
+
+RECOMMENDED ACTIONS:
+- continue: Keep exploring their needs
+- qualify_budget: Probe budget/investment level
+- book_consultation: Suggest consultation call
+- redirect: Project too small, redirect gracefully
+
+Return ONLY the JSON object, no other text.`
+  }
+
+  private async callGrokAPI(messages: Array<{role: string; content: string}>, systemPrompt: string, maxTokens: number = 1000): Promise<string> {
     const isMobileDevice = this.isMobile()
     const mobileMaxTokens = isMobileDevice ? 300 : maxTokens
 
     try {
-      const response = await fetch(this.baseURL, {
+      const response = await fetch(this.proxyURL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`,
         },
         body: JSON.stringify({
-          model: 'meta-llama/Llama-3.2-11B-Vision-Instruct-Turbo',
+          model: 'grok-2-1212',
           messages: [
             { role: 'system', content: systemPrompt },
             ...messages
           ],
           max_tokens: mobileMaxTokens,
           temperature: 0.7,
+          stream: false
         })
       })
 
       if (!response.ok) {
-        throw new Error(`API error: ${response.status}`)
+        throw new Error(`Proxy error: ${response.status}`)
       }
 
       const data = await response.json()
       return data.choices[0]?.message?.content || 'Could you rephrase that?'
     } catch (error) {
-      console.error('Together API error:', error)
+      console.error('Grok proxy error:', error)
       return this.getMobileFallbackResponse(messages)
     }
   }
 
   private async analyzeLeadIntelligence(conversation: Message[], currentLeadData: LeadData): Promise<LeadIntelligence> {
-    // Use fallback analysis for reliability
-    return this.fallbackAnalysis(conversation, currentLeadData)
+    try {
+      const analysisPrompt = this.getAnalysisPrompt(conversation, currentLeadData)
+      const response = await this.callGrokAPI(
+        [{ role: 'user', content: analysisPrompt }],
+        'You are a lead analysis expert. Always respond with valid JSON only. No additional text or explanation.',
+        500
+      )
+
+      // Clean the response - remove any non-JSON text
+      const cleanResponse = response.trim()
+      const jsonStart = cleanResponse.indexOf('{')
+      const jsonEnd = cleanResponse.lastIndexOf('}') + 1
+      
+      if (jsonStart === -1 || jsonEnd === 0) {
+        throw new Error('No JSON found in response')
+      }
+      
+      const jsonString = cleanResponse.substring(jsonStart, jsonEnd)
+      const analysis: LeadIntelligence = JSON.parse(jsonString)
+      
+      // Validate required fields and provide defaults
+      const validatedAnalysis: LeadIntelligence = {
+        projectType: analysis.projectType || 'Software Development',
+        complexityScore: analysis.complexityScore || 5,
+        budgetSignals: Array.isArray(analysis.budgetSignals) ? analysis.budgetSignals : [],
+        urgencyIndicators: Array.isArray(analysis.urgencyIndicators) ? analysis.urgencyIndicators : [],
+        technicalSophistication: analysis.technicalSophistication || 5,
+        decisionAuthority: analysis.decisionAuthority || 'medium',
+        leadScore: typeof analysis.leadScore === 'number' ? analysis.leadScore : 0,
+        nextBestQuestion: analysis.nextBestQuestion || 'Could you tell me more about your project requirements?',
+        conversationPhase: analysis.conversationPhase || 'discovery',
+        recommendedAction: analysis.recommendedAction || 'continue'
+      }
+      
+      return validatedAnalysis
+    } catch (error) {
+      console.error('Lead analysis failed:', error)
+      return this.fallbackAnalysis(conversation, currentLeadData)
+    }
   }
 
   private fallbackAnalysis(conversation: Message[], currentLeadData: LeadData): LeadIntelligence {
@@ -254,7 +326,7 @@ Remember: You're not just qualifying leads - you're demonstrating the kind of in
       }))
 
       const [aiResponse, leadAnalysis] = await Promise.all([
-        this.callTogetherAPI(apiMessages, this.getSystemPrompt()),
+        this.callGrokAPI(apiMessages, this.getSystemPrompt()),
         this.analyzeLeadIntelligence(conversation, currentLeadData)
       ])
 
