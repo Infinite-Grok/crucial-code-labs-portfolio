@@ -1,5 +1,3 @@
-import Anthropic from '@anthropic-ai/sdk';
-
 interface Message {
   id: string
   content: string
@@ -42,17 +40,10 @@ interface LeadIntelligence {
 
 export default class AIConversationEngine {
   private apiKey: string | undefined
-  private anthropic: Anthropic | null = null
+  private baseURL = 'https://api.together.xyz/v1/chat/completions'
 
   constructor() {
-    this.apiKey = process.env.NEXT_PUBLIC_CLAUDE_API_KEY
-    
-    if (this.apiKey) {
-      this.anthropic = new Anthropic({
-        apiKey: this.apiKey,
-        dangerouslyAllowBrowser: true // Required for browser usage
-      })
-    }
+    this.apiKey = process.env.NEXT_PUBLIC_TOGETHER_API_KEY
   }
 
   private isMobile(): boolean {
@@ -126,135 +117,47 @@ RESPONSE GUIDELINES:
 Remember: You're not just qualifying leads - you're demonstrating the kind of intelligent, thoughtful consultation they'll receive if they work with CrucialCodeLabs.`
   }
 
-  private getAnalysisPrompt(conversation: Message[], currentLeadData: LeadData): string {
-    const lastUserMessage = conversation.filter(m => !m.isBot).pop()?.content || ''
-    
-    return `Analyze this conversation for lead qualification. Focus on the user's latest message and overall conversation context.
-
-USER'S LATEST MESSAGE: "${lastUserMessage}"
-
-CURRENT LEAD DATA: ${JSON.stringify(currentLeadData)}
-
-CONVERSATION HISTORY: ${conversation.map(m => `${m.isBot ? 'AI' : 'User'}: ${m.content}`).join('\n')}
-
-Analyze and return ONLY a valid JSON object with this exact structure:
-{
-  "projectType": "detected project category (e.g., 'AI Integration', 'Custom Software', 'E-commerce Platform')",
-  "complexityScore": number from 1-10,
-  "budgetSignals": ["array", "of", "budget", "indicators", "found"],
-  "urgencyIndicators": ["array", "of", "urgency", "signals"],
-  "technicalSophistication": number from 1-10,
-  "decisionAuthority": "high" | "medium" | "low",
-  "leadScore": number from 0-100,
-  "nextBestQuestion": "most valuable follow-up question to ask",
-  "conversationPhase": "discovery" | "qualification" | "closing",
-  "recommendedAction": "continue" | "qualify_budget" | "book_consultation" | "redirect"
-}
-
-SCORING CRITERIA:
-- Budget indicators: Company mentions, team size, "investment", "budget", dollar amounts (+20-40 points)
-- Project complexity: AI/ML/automation (+30), custom software (+20), integrations (+15)
-- Timeline urgency: ASAP/deadline (+20), months (+10), flexible (+5)
-- Authority: CEO/CTO/founder (+15), technical lead (+10), researcher (+5)
-- Technical sophistication: APIs/integrations/scalability mentioned (+10)
-
-CONVERSATION PHASES:
-- discovery: Learning about their challenge (first 1-3 exchanges)
-- qualification: Understanding scope/budget/timeline (middle exchanges)
-- closing: Moving toward consultation booking (qualified leads 60+ points)
-
-RECOMMENDED ACTIONS:
-- continue: Keep exploring their needs
-- qualify_budget: Probe budget/investment level
-- book_consultation: Suggest consultation call
-- redirect: Project too small, redirect gracefully
-
-Return ONLY the JSON object, no other text.`
-  }
-
-  private async callClaudeAPI(messages: Array<{role: string; content: string}>, systemPrompt: string, maxTokens: number = 1000): Promise<string> {
-  if (!this.anthropic) {
-    throw new Error('Claude API key not configured')
-  }
-
-  const isMobileDevice = this.isMobile()
-  const mobileMaxTokens = isMobileDevice ? 300 : maxTokens
-
-  try {
-    // Convert messages to Claude format
-    const claudeMessages = messages.map(msg => ({
-      role: msg.role === 'assistant' ? 'assistant' as const : 'user' as const,
-      content: msg.content
-    }))
-
-    const response = await this.anthropic.messages.create({
-      model: 'claude-3-haiku-20240307',
-      max_tokens: mobileMaxTokens,
-      temperature: 0.7,
-      system: systemPrompt,
-      messages: claudeMessages
-    })
-
-    const content = response.content[0]
-    if (content.type === 'text') {
-      return content.text
+  private async callTogetherAPI(messages: Array<{role: string; content: string}>, systemPrompt: string, maxTokens: number = 1000): Promise<string> {
+    if (!this.apiKey) {
+      throw new Error('Together API key not configured')
     }
 
-    throw new Error('Unexpected response format')
-  } catch (error) {
-    // Show mobile error in chat for debugging
-    if (isMobileDevice) {
-      const errorMsg = error instanceof Error ? error.message : 'Unknown error'
-      
-      // Return error in chat so you can see it on mobile
-      return `🔧 DEBUG - Mobile API Error: ${errorMsg}. Using fallback response: ` + this.getMobileFallbackResponse(messages)
+    const isMobileDevice = this.isMobile()
+    const mobileMaxTokens = isMobileDevice ? 300 : maxTokens
+
+    try {
+      const response = await fetch(this.baseURL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.apiKey}`,
+        },
+        body: JSON.stringify({
+          model: 'meta-llama/Llama-3.2-11B-Vision-Instruct-Turbo',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            ...messages
+          ],
+          max_tokens: mobileMaxTokens,
+          temperature: 0.7,
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`)
+      }
+
+      const data = await response.json()
+      return data.choices[0]?.message?.content || 'Could you rephrase that?'
+    } catch (error) {
+      console.error('Together API error:', error)
+      return this.getMobileFallbackResponse(messages)
     }
-    throw error
   }
-}
 
   private async analyzeLeadIntelligence(conversation: Message[], currentLeadData: LeadData): Promise<LeadIntelligence> {
-    try {
-      const analysisPrompt = this.getAnalysisPrompt(conversation, currentLeadData)
-      const response = await this.callClaudeAPI(
-        [{ role: 'user', content: analysisPrompt }],
-        'You are a lead analysis expert. Always respond with valid JSON only. No additional text or explanation.',
-        300 // Smaller response for analysis
-      )
-
-      // Clean the response - remove any non-JSON text
-      const cleanResponse = response.trim()
-      const jsonStart = cleanResponse.indexOf('{')
-      const jsonEnd = cleanResponse.lastIndexOf('}') + 1
-      
-      if (jsonStart === -1 || jsonEnd === 0) {
-        throw new Error('No JSON found in response')
-      }
-      
-      const jsonString = cleanResponse.substring(jsonStart, jsonEnd)
-      const analysis: LeadIntelligence = JSON.parse(jsonString)
-      
-      // Validate required fields and provide defaults
-      const validatedAnalysis: LeadIntelligence = {
-        projectType: analysis.projectType || 'Software Development',
-        complexityScore: analysis.complexityScore || 5,
-        budgetSignals: Array.isArray(analysis.budgetSignals) ? analysis.budgetSignals : [],
-        urgencyIndicators: Array.isArray(analysis.urgencyIndicators) ? analysis.urgencyIndicators : [],
-        technicalSophistication: analysis.technicalSophistication || 5,
-        decisionAuthority: analysis.decisionAuthority || 'medium',
-        leadScore: typeof analysis.leadScore === 'number' ? analysis.leadScore : 0,
-        nextBestQuestion: analysis.nextBestQuestion || 'Could you tell me more about your project requirements?',
-        conversationPhase: analysis.conversationPhase || 'discovery',
-        recommendedAction: analysis.recommendedAction || 'continue'
-      }
-      
-      return validatedAnalysis
-    } catch (error) {
-      console.error('Lead analysis failed:', error)
-      
-      // Enhanced fallback analysis
-      return this.fallbackAnalysis(conversation, currentLeadData)
-    }
+    // Use fallback analysis for reliability
+    return this.fallbackAnalysis(conversation, currentLeadData)
   }
 
   private fallbackAnalysis(conversation: Message[], currentLeadData: LeadData): LeadIntelligence {
@@ -318,7 +221,6 @@ Return ONLY the JSON object, no other text.`
   private getMobileFallbackResponse(messages: Array<{role: string; content: string}>): string {
     const lastMessage = messages[messages.length - 1]?.content.toLowerCase() || ''
     
-    // Smart mobile fallbacks based on keywords
     if (lastMessage.includes('ai') || lastMessage.includes('machine learning')) {
       return "That's an exciting AI project! We specialize in AI integration and have helped many companies implement intelligent solutions. What specific AI capabilities are you looking to add to your platform?"
     }
@@ -335,25 +237,21 @@ Return ONLY the JSON object, no other text.`
       return "I appreciate you thinking about investment. Our projects typically range from $8K for focused solutions up to $50K+ for comprehensive AI implementations. What scope are you considering?"
     }
     
-    // Default professional response
     return "That sounds like an interesting challenge! Could you tell me more about the specific technical requirements or business goals you're trying to achieve? This will help me understand how we can best assist you."
   }
 
   public async getResponse(conversation: Message[], currentLeadData: LeadData): Promise<AIResponse> {
     try {
-      // Prepare conversation for API
       const apiMessages = conversation.map(msg => ({
         role: msg.isBot ? 'assistant' : 'user',
         content: msg.content
       }))
 
-      // Get AI response and lead analysis in parallel
       const [aiResponse, leadAnalysis] = await Promise.all([
-        this.callClaudeAPI(apiMessages, this.getSystemPrompt()),
+        this.callTogetherAPI(apiMessages, this.getSystemPrompt()),
         this.analyzeLeadIntelligence(conversation, currentLeadData)
       ])
 
-      // Update lead data based on analysis
       const updatedLeadData: Partial<LeadData> = {
         projectType: leadAnalysis.projectType,
         leadScore: leadAnalysis.leadScore,
@@ -361,7 +259,6 @@ Return ONLY the JSON object, no other text.`
         qualified: leadAnalysis.leadScore >= 60
       }
 
-      // Add urgency and budget signals if detected
       if (leadAnalysis.urgencyIndicators.length > 0) {
         updatedLeadData.urgency = 'high'
       }
@@ -376,7 +273,6 @@ Return ONLY the JSON object, no other text.`
     } catch (error) {
       console.error('Conversation engine error:', error)
       
-      // Fallback response
       return {
         message: "I apologize for the technical hiccup. I'm here to discuss your software development needs - what specific challenge are you trying to solve?",
         leadData: { leadScore: (currentLeadData.leadScore || 0) + 5 }
