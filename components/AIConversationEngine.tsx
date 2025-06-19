@@ -318,43 +318,97 @@ Return ONLY the JSON object, no other text.`
     return "That sounds like an interesting challenge! Could you tell me more about the specific technical requirements or business goals you're trying to achieve? This will help me understand how we can best assist you."
   }
 
-  public async getResponse(conversation: Message[], currentLeadData: LeadData): Promise<AIResponse> {
-    try {
-      const apiMessages = conversation.map(msg => ({
-        role: msg.isBot ? 'assistant' : 'user',
-        content: msg.content
-      }))
-
-      const [aiResponse, leadAnalysis] = await Promise.all([
-        this.callGrokAPI(apiMessages, this.getSystemPrompt()),
-        this.analyzeLeadIntelligence(conversation, currentLeadData)
-      ])
-
-      const updatedLeadData: Partial<LeadData> = {
-        projectType: leadAnalysis.projectType,
-        leadScore: leadAnalysis.leadScore,
-        conversationPhase: leadAnalysis.conversationPhase,
-        qualified: leadAnalysis.leadScore >= 60
-      }
-
-      if (leadAnalysis.urgencyIndicators.length > 0) {
-        updatedLeadData.urgency = 'high'
-      }
-      if (leadAnalysis.budgetSignals.length > 0) {
-        updatedLeadData.budget = leadAnalysis.budgetSignals.join(', ')
-      }
-
-      return {
-        message: aiResponse,
-        leadData: updatedLeadData
-      }
-    } catch (error) {
-      console.error('Conversation engine error:', error)
-      
-      return {
-        message: "I apologize for the technical hiccup. I'm here to discuss your software development needs - what specific challenge are you trying to solve?",
-        leadData: { leadScore: (currentLeadData.leadScore || 0) + 5 }
-      }
-    }
+  private trackLeadProgression(conversation: Message[], leadData: any, previousScore: number) {
+  const currentScore = leadData.leadScore;
+  const scoreChange = currentScore - previousScore;
+  const messageCount = conversation.filter(m => !m.isBot).length;
+  
+  // Track progression events
+  if (previousScore < 25 && currentScore >= 25) {
+    this.trackEvent('lead_engaged', leadData, { messageCount });
+  }
+  if (previousScore < 40 && currentScore >= 40) {
+    this.trackEvent('lead_interested', leadData, { messageCount });
+  }
+  if (previousScore < 60 && currentScore >= 60) {
+    this.trackEvent('lead_qualified', leadData, { messageCount });
+  }
+  
+  // Track conversation phase transitions
+  if (leadData.conversationPhase === 'qualification' && previousScore < 40) {
+    this.trackEvent('entered_qualification', leadData, { messageCount });
+  }
+  if (leadData.conversationPhase === 'closing' && previousScore < 60) {
+    this.trackEvent('entered_closing', leadData, { messageCount });
+  }
+  
+  // Track score velocity (how fast scores increase)
+  const scoreVelocity = scoreChange / messageCount;
+  if (scoreVelocity > 10) {
+    this.trackEvent('high_velocity_lead', leadData, { scoreVelocity, messageCount });
   }
 }
+
+private trackEvent(eventType: string, leadData: any, additionalData: any = {}) {
+  const analyticsData = {
+    eventType,
+    timestamp: Date.now(),
+    device: this.isMobile() ? 'mobile' : 'desktop',
+    leadScore: leadData.leadScore,
+    projectType: leadData.projectType,
+    conversationPhase: leadData.conversationPhase,
+    ...additionalData
+  };
+
+  // Send to analytics endpoint
+  fetch(`${this.proxyURL}/analytics`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(analyticsData)
+  }).catch(() => {}); // Fire and forget
+}
+
+  public async getResponse(conversation: Message[], currentLeadData: LeadData): Promise<AIResponse> {
+ try {
+   const apiMessages = conversation.map(msg => ({
+     role: msg.isBot ? 'assistant' : 'user',
+     content: msg.content
+   }))
+
+   const [aiResponse, leadAnalysis] = await Promise.all([
+     this.callGrokAPI(apiMessages, this.getSystemPrompt()),
+     this.analyzeLeadIntelligence(conversation, currentLeadData)
+   ])
+
+   // Track lead progression (after Promise.all)
+   this.trackLeadProgression(conversation, leadAnalysis, currentLeadData.leadScore || 0);
+
+   const updatedLeadData: Partial<LeadData> = {
+     projectType: leadAnalysis.projectType,
+     leadScore: leadAnalysis.leadScore,
+     conversationPhase: leadAnalysis.conversationPhase,
+     qualified: leadAnalysis.leadScore >= 60
+   }
+
+   if (leadAnalysis.urgencyIndicators.length > 0) {
+     updatedLeadData.urgency = 'high'
+   }
+
+   if (leadAnalysis.budgetSignals.length > 0) {
+     updatedLeadData.budget = leadAnalysis.budgetSignals.join(', ')
+   }
+
+   return {
+     message: aiResponse,
+     leadData: updatedLeadData
+   }
+ } catch (error) {
+   console.error('Conversation engine error:', error)
+   
+   return {
+     message: "I apologize for the technical hiccup. I'm here to discuss your software development needs - what specific challenge are you trying to solve?",
+     leadData: { leadScore: (currentLeadData.leadScore || 0) + 5 }
+   }
+ }
+}
+  }
