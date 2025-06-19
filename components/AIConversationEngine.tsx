@@ -173,45 +173,45 @@ Return ONLY the JSON object, no other text.`
   }
 
   private async callClaudeAPI(messages: Array<{role: string; content: string}>, systemPrompt: string, maxTokens: number = 1000): Promise<string> {
-    if (!this.anthropic) {
-      throw new Error('Claude API key not configured')
-    }
-
-    const isMobileDevice = this.isMobile()
-    const mobileMaxTokens = isMobileDevice ? 300 : maxTokens // Much smaller for mobile
-
-    try {
-      // Convert messages to Claude format
-      const claudeMessages = messages.map(msg => ({
-        role: msg.role === 'assistant' ? 'assistant' as const : 'user' as const,
-        content: msg.content
-      }))
-
-      const response = await this.anthropic.messages.create({
-        model: 'claude-3-haiku-20240307', // Cheapest and fastest Claude model
-        max_tokens: mobileMaxTokens,
-        temperature: 0.7,
-        system: systemPrompt,
-        messages: claudeMessages
-      })
-
-      const content = response.content[0]
-      if (content.type === 'text') {
-        return content.text
-      }
-
-      throw new Error('Unexpected response format')
-    } catch (error) {
-      console.error('Claude API error:', error)
-      
-      // Enhanced mobile fallback
-      if (isMobileDevice) {
-        console.log('Mobile Claude API failed, using enhanced fallback')
-        return this.getMobileFallbackResponse(messages)
-      }
-      throw error
-    }
+  if (!this.anthropic) {
+    throw new Error('Claude API key not configured')
   }
+
+  const isMobileDevice = this.isMobile()
+  const mobileMaxTokens = isMobileDevice ? 300 : maxTokens
+
+  try {
+    // Convert messages to Claude format
+    const claudeMessages = messages.map(msg => ({
+      role: msg.role === 'assistant' ? 'assistant' as const : 'user' as const,
+      content: msg.content
+    }))
+
+    const response = await this.anthropic.messages.create({
+      model: 'claude-3-haiku-20240307',
+      max_tokens: mobileMaxTokens,
+      temperature: 0.7,
+      system: systemPrompt,
+      messages: claudeMessages
+    })
+
+    const content = response.content[0]
+    if (content.type === 'text') {
+      return content.text
+    }
+
+    throw new Error('Unexpected response format')
+  } catch (error) {
+    // Show mobile error in chat for debugging
+    if (isMobileDevice) {
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error'
+      
+      // Return error in chat so you can see it on mobile
+      return `🔧 DEBUG - Mobile API Error: ${errorMsg}. Using fallback response: ` + this.getMobileFallbackResponse(messages)
+    }
+    throw error
+  }
+}
 
   private async analyzeLeadIntelligence(conversation: Message[], currentLeadData: LeadData): Promise<LeadIntelligence> {
     try {
