@@ -1,3 +1,5 @@
+import Anthropic from '@anthropic-ai/sdk';
+
 interface Message {
   id: string
   content: string
@@ -40,10 +42,17 @@ interface LeadIntelligence {
 
 export default class AIConversationEngine {
   private apiKey: string | undefined
-  private baseURL = 'https://api.x.ai/v1/chat/completions'
+  private anthropic: Anthropic | null = null
 
   constructor() {
-    this.apiKey = process.env.NEXT_PUBLIC_GROK_API_KEY
+    this.apiKey = process.env.NEXT_PUBLIC_CLAUDE_API_KEY
+    
+    if (this.apiKey) {
+      this.anthropic = new Anthropic({
+        apiKey: this.apiKey,
+        dangerouslyAllowBrowser: true // Required for browser usage
+      })
+    }
   }
 
   private isMobile(): boolean {
@@ -163,53 +172,41 @@ RECOMMENDED ACTIONS:
 Return ONLY the JSON object, no other text.`
   }
 
-  private async callGrokAPI(messages: Array<{role: string; content: string}>, systemPrompt: string, maxTokens: number = 1000): Promise<string> {
-    if (!this.apiKey) {
-      throw new Error('Grok API key not configured')
+  private async callClaudeAPI(messages: Array<{role: string; content: string}>, systemPrompt: string, maxTokens: number = 1000): Promise<string> {
+    if (!this.anthropic) {
+      throw new Error('Claude API key not configured')
     }
 
-    // Mobile-specific timeout and retry logic
     const isMobileDevice = this.isMobile()
-    const timeout = isMobileDevice ? 15000 : 30000 // Shorter timeout for mobile
-    
-    try {
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), timeout)
+    const mobileMaxTokens = isMobileDevice ? 300 : maxTokens // Much smaller for mobile
 
-      const response = await fetch(this.baseURL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`,
-          // Add mobile-friendly headers
-          'Accept': 'application/json',
-          'Cache-Control': 'no-cache'
-        },
-        body: JSON.stringify({
-          model: 'grok-2-1212',
-          messages: [
-            { role: 'system', content: systemPrompt },
-            ...messages
-          ],
-          max_tokens: isMobileDevice ? 500 : maxTokens, // Smaller responses for mobile
-          temperature: 0.7,
-          stream: false
-        }),
-        signal: controller.signal
+    try {
+      // Convert messages to Claude format
+      const claudeMessages = messages.map(msg => ({
+        role: msg.role === 'assistant' ? 'assistant' as const : 'user' as const,
+        content: msg.content
+      }))
+
+      const response = await this.anthropic.messages.create({
+        model: 'claude-3-haiku-20240307', // Cheapest and fastest Claude model
+        max_tokens: mobileMaxTokens,
+        temperature: 0.7,
+        system: systemPrompt,
+        messages: claudeMessages
       })
 
-      clearTimeout(timeoutId)
-
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`)
+      const content = response.content[0]
+      if (content.type === 'text') {
+        return content.text
       }
 
-      const data = await response.json()
-      return data.choices[0]?.message?.content || 'Could you rephrase that?'
+      throw new Error('Unexpected response format')
     } catch (error) {
+      console.error('Claude API error:', error)
+      
       // Enhanced mobile fallback
       if (isMobileDevice) {
-        console.log('Mobile API failed, using enhanced fallback')
+        console.log('Mobile Claude API failed, using enhanced fallback')
         return this.getMobileFallbackResponse(messages)
       }
       throw error
@@ -219,10 +216,10 @@ Return ONLY the JSON object, no other text.`
   private async analyzeLeadIntelligence(conversation: Message[], currentLeadData: LeadData): Promise<LeadIntelligence> {
     try {
       const analysisPrompt = this.getAnalysisPrompt(conversation, currentLeadData)
-      const response = await this.callGrokAPI(
+      const response = await this.callClaudeAPI(
         [{ role: 'user', content: analysisPrompt }],
         'You are a lead analysis expert. Always respond with valid JSON only. No additional text or explanation.',
-        500
+        300 // Smaller response for analysis
       )
 
       // Clean the response - remove any non-JSON text
@@ -352,7 +349,7 @@ Return ONLY the JSON object, no other text.`
 
       // Get AI response and lead analysis in parallel
       const [aiResponse, leadAnalysis] = await Promise.all([
-        this.callGrokAPI(apiMessages, this.getSystemPrompt()),
+        this.callClaudeAPI(apiMessages, this.getSystemPrompt()),
         this.analyzeLeadIntelligence(conversation, currentLeadData)
       ])
 
