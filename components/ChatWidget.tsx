@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { MessageSquare, X, Send, Bot, User, Zap, Calendar, DollarSign } from 'lucide-react'
+import { MessageSquare, X, Send, Bot, User } from 'lucide-react'
 
 interface Message {
   id: string
@@ -42,15 +42,6 @@ export default function ChatWidget() {
     scrollToBottom()
   }, [messages])
 
-  useEffect(() => {
-    if (isOpen && messages.length === 0) {
-      // Initial bot message
-      addBotMessage(
-        "👋 Hi! I'm the AI assistant for CrucialCodeLabs. I help identify how we can best support your technical projects.\n\nWhat type of software challenge are you looking to solve?"
-      )
-    }
-  }, [isOpen])
-
   const addBotMessage = (content: string, data?: Partial<LeadData>) => {
     const newMessage: Message = {
       id: Date.now().toString(),
@@ -65,6 +56,16 @@ export default function ChatWidget() {
       setLeadData(prev => ({ ...prev, ...data }))
     }
   }
+
+  useEffect(() => {
+    if (isOpen && messages.length === 0) {
+      // Initial bot message
+      addBotMessage(
+        "👋 Hi! I'm the AI assistant for CrucialCodeLabs. I help identify how we can best support your technical projects.\n\nWhat type of software challenge are you looking to solve?"
+      )
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, messages.length])
 
   const addUserMessage = (content: string) => {
     const newMessage: Message = {
@@ -151,9 +152,9 @@ export default function ChatWidget() {
     if (messageCount === 1) {
       // First user message - project type inquiry
       if (detectedData.projectType) {
-        return `Great! ${detectedData.projectType} is definitely within our expertise. We've delivered similar solutions for clients ranging from startups to enterprise companies.\n\nTo give you the most accurate guidance, what's your target timeline for this project?`
+        return `Great! ${detectedData.projectType} is definitely within our expertise. We have delivered similar solutions for clients ranging from startups to enterprise companies.\n\nTo give you the most accurate guidance, what is your target timeline for this project?`
       } else {
-        return `That sounds interesting! To better understand how we can help, could you tell me more about:\n\n• What type of software or system you're looking to build\n• Any specific technical challenges you're facing\n• Whether this is a new project or enhancing existing systems`
+        return `That sounds interesting! To better understand how we can help, could you tell me more about:\n\n• What type of software or system you are looking to build\n• Any specific technical challenges you are facing\n• Whether this is a new project or enhancing existing systems`
       }
     }
     
@@ -176,17 +177,17 @@ export default function ChatWidget() {
       // Third message - budget discussion & qualification
       if (score >= 60) {
         setShowLeadForm(true)
-        return `Excellent! Based on our conversation, this sounds like a great fit for our expertise. \n\nI'd love to connect you with our lead developer for a detailed technical consultation. This usually takes 15-30 minutes and you'll get:\n\n✓ Specific approach recommendations\n✓ Accurate timeline estimates  \n✓ Technology stack guidance\n✓ Clear next steps\n\nCould you share your contact details so we can schedule a brief call?`
+        return `Excellent! Based on our conversation, this sounds like a great fit for our expertise. \n\nI would love to connect you with our lead developer for a detailed technical consultation. This usually takes 15-30 minutes and you will get:\n\n✓ Specific approach recommendations\n✓ Accurate timeline estimates  \n✓ Technology stack guidance\n✓ Clear next steps\n\nCould you share your contact details so we can schedule a brief call?`
       } else {
-        return `Thanks for sharing that information! While this project might be a bit outside our typical engagement range, I'd still be happy to provide some guidance.\n\nWould you like me to:\n• Recommend some resources for your project scope\n• Suggest alternative approaches that might fit your budget\n• Connect you with other service providers who specialize in smaller projects\n\nWhat would be most helpful?`
+        return `Thanks for sharing that information! While this project might be a bit outside our typical engagement range, I would still be happy to provide some guidance.\n\nWould you like me to:\n• Recommend some resources for your project scope\n• Suggest alternative approaches that might fit your budget\n• Connect you with other service providers who specialize in smaller projects\n\nWhat would be most helpful?`
       }
     }
     
     // Follow-up messages
     if (score >= 60) {
-      return `I can see this is exactly the type of project where we excel. Let me get you connected with our technical team for a proper consultation. \n\nWhat's the best way to reach you for a quick 15-minute discussion?`
+      return `I can see this is exactly the type of project where we excel. Let me get you connected with our technical team for a proper consultation. \n\nWhat is the best way to reach you for a quick 15-minute discussion?`
     } else {
-      return `I appreciate you sharing more details. Let me know if you have any other questions about our services or if there's anything else I can help clarify!`
+      return `I appreciate you sharing more details. Let me know if you have any other questions about our services or if there is anything else I can help clarify!`
     }
   }
 
@@ -225,7 +226,7 @@ export default function ChatWidget() {
     
     setShowLeadForm(false)
     addBotMessage(
-      `Perfect! Thanks ${contactData.name}. I've noted your details and our lead developer will reach out within 24 hours to schedule your technical consultation.\n\nIn the meantime, feel free to browse our case studies on the site. Looking forward to discussing your project in detail! 🚀`
+      `Perfect! Thanks ${contactData.name}. I have noted your details and our lead developer will reach out within 24 hours to schedule your technical consultation.\n\nIn the meantime, feel free to browse our case studies on the site. Looking forward to discussing your project in detail! 🚀`
     )
   }
 
@@ -522,7 +523,7 @@ function ContactForm({ onSubmit }: { onSubmit: (data: { name: string; email: str
   return (
     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
       <h4 style={{ margin: 0, fontSize: '0.875rem', fontWeight: '600', color: '#1f2937' }}>
-        🎯 Great! Let's schedule your consultation
+        🎯 Great! Let&apos;s schedule your consultation
       </h4>
       <input
         type="text"

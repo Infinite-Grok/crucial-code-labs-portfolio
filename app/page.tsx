@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Code, Brain, Zap, Users, ArrowRight, MessageSquare, Github, Linkedin, Mail, Menu, X, Bot, BarChart3, Eye, Settings } from 'lucide-react'
+import { Code, Brain, Zap, Users, ArrowRight, Github, Linkedin, Mail, Menu, X, Bot, BarChart3, Eye, Settings } from 'lucide-react'
 import ChatWidget from '../components/ChatWidget'
 
 export default function Home() {
