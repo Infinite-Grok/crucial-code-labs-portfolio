@@ -592,7 +592,7 @@ export default function Home() {
               lineHeight: '1.7',
               color: 'rgba(255, 255, 255, 0.9)'
             }}>
-              Ready to discuss your project? Let's have an honest conversation about your needs and how we can help achieve your goals.
+              Ready to discuss your project? Let&apos;s have an honest conversation about your needs and how we can help achieve your goals.
             </p>
             
             <div style={{
