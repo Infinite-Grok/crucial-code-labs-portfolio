@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { MessageSquare, X, Send, Bot, User } from 'lucide-react'
 import AIConversationEngine from './AIConversationEngine'
@@ -46,7 +46,7 @@ export default function ChatWidget() {
     scrollToBottom()
   }, [messages])
 
-  const addBotMessage = (content: string, data?: Partial<LeadData>) => {
+  const addBotMessage = useCallback((content: string, data?: Partial<LeadData>) => {
     const newMessage: Message = {
       id: Date.now().toString(),
       content,
@@ -59,7 +59,7 @@ export default function ChatWidget() {
     if (data) {
       setLeadData(prev => ({ ...prev, ...data }))
     }
-  }
+  }, [leadData])
 
   const addUserMessage = (content: string) => {
     const newMessage: Message = {
@@ -78,7 +78,7 @@ export default function ChatWidget() {
         "Hi! I'm here to learn about your technical challenges and see how CrucialCodeLabs might be able to help. What kind of software project or technical challenge are you working on?"
       )
     }
-  }, [isOpen, messages.length])
+  }, [isOpen, messages.length, addBotMessage])
 
   const handleSend = async () => {
   if (!input.trim() || isLoading) return

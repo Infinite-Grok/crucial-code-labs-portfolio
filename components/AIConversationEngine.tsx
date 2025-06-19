@@ -224,8 +224,8 @@ Return ONLY the JSON object, no other text.`
 
       // Clean the response - remove any non-JSON text
       const cleanResponse = response.trim()
-      let jsonStart = cleanResponse.indexOf('{')
-      let jsonEnd = cleanResponse.lastIndexOf('}') + 1
+      const jsonStart = cleanResponse.indexOf('{')
+      const jsonEnd = cleanResponse.lastIndexOf('}') + 1
       
       if (jsonStart === -1 || jsonEnd === 0) {
         throw new Error('No JSON found in response')
