@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Code, Brain, Zap, Users, ArrowRight, MessageSquare, Github, Linkedin, Mail, Menu, X, Bot, BarChart3, Eye, Settings } from 'lucide-react'
+import ChatWidget from '../components/ChatWidget'
 
 export default function Home() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
@@ -820,33 +821,7 @@ export default function Home() {
         </div>
       </footer>
 
-      {/* Chat Widget */}
-      <div style={{
-        position: 'fixed',
-        bottom: '2rem',
-        right: '2rem',
-        zIndex: 1000
-      }}>
-        <motion.button
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          transition={{ delay: 1, type: "spring", stiffness: 200, damping: 10 }}
-          style={{
-            background: '#2563eb',
-            color: 'white',
-            padding: 'clamp(0.75rem, 3vw, 1rem)',
-            borderRadius: '50%',
-            border: 'none',
-            cursor: 'pointer',
-            boxShadow: '0 10px 30px rgba(37, 99, 235, 0.3)',
-            transition: 'all 0.3s ease'
-          }}
-          onMouseOver={(e) => (e.currentTarget as HTMLElement).style.transform = 'scale(1.1)'}
-          onMouseOut={(e) => (e.currentTarget as HTMLElement).style.transform = 'scale(1)'}
-        >
-          <MessageSquare size={24} />
-        </motion.button>
-      </div>
+      <ChatWidget />
 
       <style jsx>{`
         @media (max-width: 768px) {
