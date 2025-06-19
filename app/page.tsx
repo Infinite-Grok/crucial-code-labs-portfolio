@@ -115,8 +115,8 @@ export default function Home() {
                   fontWeight: '500',
                   transition: 'color 0.3s ease'
                 }}
-                onMouseOver={(e) => e.target.style.color = '#2563eb'}
-                onMouseOut={(e) => e.target.style.color = '#374151'}
+                onMouseOver={(e) => (e.target as HTMLElement).style.color = '#2563eb'}
+                onMouseOut={(e) => (e.target as HTMLElement).style.color = '#374151'}
               >
                 {item}
               </a>
@@ -237,12 +237,12 @@ export default function Home() {
                 boxShadow: '0 4px 14px 0 rgba(37, 99, 235, 0.39)'
               }}
               onMouseOver={(e) => {
-                e.target.style.background = '#1d4ed8'
-                e.target.style.transform = 'translateY(-2px)'
+                (e.target as HTMLElement).style.background = '#1d4ed8';
+                (e.target as HTMLElement).style.transform = 'translateY(-2px)'
               }}
               onMouseOut={(e) => {
-                e.target.style.background = '#2563eb'
-                e.target.style.transform = 'translateY(0)'
+                (e.target as HTMLElement).style.background = '#2563eb';
+                (e.target as HTMLElement).style.transform = 'translateY(0)'
               }}
             >
               Our Services
@@ -264,12 +264,12 @@ export default function Home() {
                 transition: 'all 0.3s ease'
               }}
               onMouseOver={(e) => {
-                e.target.style.background = 'white'
-                e.target.style.color = '#1f2937'
+                (e.target as HTMLElement).style.background = 'white';
+                (e.target as HTMLElement).style.color = '#1f2937'
               }}
               onMouseOut={(e) => {
-                e.target.style.background = 'transparent'
-                e.target.style.color = 'white'
+                (e.target as HTMLElement).style.background = 'transparent';
+                (e.target as HTMLElement).style.color = 'white'
               }}
             >
               Get in Touch
@@ -407,13 +407,13 @@ export default function Home() {
                     boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)'
                   }}
                   onMouseOver={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(37, 99, 235, 0.5)'
-                    e.currentTarget.style.transform = 'translateY(-4px)'
+                    e.currentTarget.style.borderColor = 'rgba(37, 99, 235, 0.5)';
+                    e.currentTarget.style.transform = 'translateY(-4px)';
                     e.currentTarget.style.boxShadow = '0 8px 30px rgba(0, 0, 0, 0.15)'
                   }}
                   onMouseOut={(e) => {
-                    e.currentTarget.style.borderColor = 'rgba(37, 99, 235, 0.2)'
-                    e.currentTarget.style.transform = 'translateY(0)'
+                    e.currentTarget.style.borderColor = 'rgba(37, 99, 235, 0.2)';
+                    e.currentTarget.style.transform = 'translateY(0)';
                     e.currentTarget.style.boxShadow = '0 4px 20px rgba(0, 0, 0, 0.1)'
                   }}
                 >
@@ -727,8 +727,8 @@ export default function Home() {
                       cursor: 'pointer',
                       transition: 'all 0.3s ease'
                     }}
-                    onMouseOver={(e) => e.target.style.background = '#1d4ed8'}
-                    onMouseOut={(e) => e.target.style.background = '#2563eb'}
+                    onMouseOver={(e) => (e.target as HTMLElement).style.background = '#1d4ed8'}
+                    onMouseOut={(e) => (e.target as HTMLElement).style.background = '#2563eb'}
                   >
                     Send Message
                   </button>
@@ -803,8 +803,8 @@ export default function Home() {
             boxShadow: '0 10px 30px rgba(37, 99, 235, 0.3)',
             transition: 'all 0.3s ease'
           }}
-          onMouseOver={(e) => e.target.style.transform = 'scale(1.1)'}
-          onMouseOut={(e) => e.target.style.transform = 'scale(1)'}
+          onMouseOver={(e) => (e.currentTarget as HTMLElement).style.transform = 'scale(1.1)'}
+          onMouseOut={(e) => (e.currentTarget as HTMLElement).style.transform = 'scale(1)'}
         >
           <MessageSquare size={24} />
         </motion.button>
