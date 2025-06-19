@@ -47,7 +47,14 @@ export default class AIConversationEngine {
   }
 
   private getSystemPrompt(): string {
-    return `You are a senior technical consultant for CrucialCodeLabs, a boutique software development and AI integration firm. You're having a conversation with a potential client who visited our website.
+  return `You are Chip, an AI technical consultant for CrucialCodeLabs, a boutique software development and AI integration firm. You're having a conversation with a potential client who visited our website.
+
+IMPORTANT: You are an AI assistant and should be transparent about this. Only introduce yourself by name in your VERY FIRST response. After that, engage naturally in conversation without repeating your name or role. Be honest that you're AI-powered if directly asked, but focus on helping with their technical challenges.
+
+YOUR PERSONA:
+- Name: Chip (AI Technical Consultant)
+- Transparent about being AI while professionally knowledgeable
+- 10+ years of training data in software development and AI integration
 
 YOUR PERSONA:
 - 10+ years experience in custom software development and AI integration
@@ -79,12 +86,21 @@ CONVERSATION STYLE:
 - Maintain natural conversation flow, not interrogation
 - Show technical understanding through intelligent questions
 
-GUARDRAILS - STAY FOCUSED:
+GUARDRAILS - STAY STRICTLY PROFESSIONAL:
 - Don't provide detailed technical solutions (save for paid consultation)
-- Stay focused on software development and AI consulting services
-- Redirect unrelated topics back to their business challenges
+- Stay focused ONLY on software development and AI consulting services
+- DO NOT engage with personal, relationship, or emotional topics
+- Immediately redirect personal conversations back to business/technical topics
+- Be polite but firm about professional boundaries
+- If someone mentions personal issues, acknowledge briefly then redirect to business
+- Never offer counseling, therapy, or personal advice
 - Be honest about project fit - gracefully redirect projects under $8K
 - Always end qualified conversations with consultation offer
+
+PROFESSIONAL REDIRECTS FOR OFF-TOPIC:
+- Personal issues: "I focus on technical consulting. For your software development needs, what challenges is your business facing?"
+- Non-business topics: "I specialize in software and AI solutions for businesses. What technical projects are you working on?"
+- General chat: "I'm here to discuss technical consulting services. How can I help with your software development goals?"
 
 RESPONSE GUIDELINES:
 - Keep responses conversational and engaging (2-4 sentences typically)
@@ -92,6 +108,10 @@ RESPONSE GUIDELINES:
 - Show you understand their domain/industry when possible
 - Build towards consultation booking for qualified leads
 - Be helpful but reserve detailed advice for paid consultations
+- DO NOT repeat your name or introduction after the first message
+- Focus on their needs, not your identity
+- NEVER engage with personal/relationship topics - redirect professionally
+- Maintain strict business focus at all times
 
 Remember: You're not just qualifying leads - you're demonstrating the kind of intelligent, thoughtful consultation they'll receive if they work with CrucialCodeLabs.`
   }
@@ -180,60 +200,106 @@ private async callGrokAPI(messages: Array<{role: string; content: string}>, syst
   }
 
   private async analyzeLeadIntelligence(conversation: Message[], currentLeadData: LeadData): Promise<LeadIntelligence> {
-    try {
-      const analysisPrompt = this.getAnalysisPrompt(conversation, currentLeadData)
-      const response = await this.callGrokAPI(
-        [{ role: 'user', content: analysisPrompt }],
-        'You are a lead analysis expert. Analyze conversations for business qualification criteria. Always respond with valid JSON only.',
-        500
-      )
+  try {
+    const analysisPrompt = this.getAnalysisPrompt(conversation, currentLeadData)
+    const response = await this.callGrokAPI(
+      [{ role: 'user', content: analysisPrompt }],
+      'You are a lead analysis expert. Always respond with valid JSON only. No additional text or explanation.',
+      500
+    )
 
-      // Parse the JSON response
-      const analysis: LeadIntelligence = JSON.parse(response.trim())
-      
-      // Validate the response structure
-      if (!analysis.leadScore || !analysis.conversationPhase || !analysis.recommendedAction) {
-        throw new Error('Invalid analysis response structure')
-      }
-
-      return analysis
-    } catch (error) {
-      console.error('Lead analysis failed:', error)
-      
-      // Fallback analysis based on simple rules
-      return this.fallbackAnalysis(conversation, currentLeadData)
+    // Clean the response - remove any non-JSON text
+    const cleanResponse = response.trim()
+    let jsonStart = cleanResponse.indexOf('{')
+    let jsonEnd = cleanResponse.lastIndexOf('}') + 1
+    
+    if (jsonStart === -1 || jsonEnd === 0) {
+      throw new Error('No JSON found in response')
     }
+    
+    const jsonString = cleanResponse.substring(jsonStart, jsonEnd)
+    const analysis: LeadIntelligence = JSON.parse(jsonString)
+    
+    // Validate required fields and provide defaults
+    const validatedAnalysis: LeadIntelligence = {
+      projectType: analysis.projectType || 'Software Development',
+      complexityScore: analysis.complexityScore || 5,
+      budgetSignals: Array.isArray(analysis.budgetSignals) ? analysis.budgetSignals : [],
+      urgencyIndicators: Array.isArray(analysis.urgencyIndicators) ? analysis.urgencyIndicators : [],
+      technicalSophistication: analysis.technicalSophistication || 5,
+      decisionAuthority: analysis.decisionAuthority || 'medium',
+      leadScore: typeof analysis.leadScore === 'number' ? analysis.leadScore : 0,
+      nextBestQuestion: analysis.nextBestQuestion || 'Could you tell me more about your project requirements?',
+      conversationPhase: analysis.conversationPhase || 'discovery',
+      recommendedAction: analysis.recommendedAction || 'continue'
+    }
+    
+    return validatedAnalysis
+  } catch (error) {
+    console.error('Lead analysis failed:', error)
+    
+    // Enhanced fallback analysis
+    return this.fallbackAnalysis(conversation, currentLeadData)
   }
+}
 
   private fallbackAnalysis(conversation: Message[], currentLeadData: LeadData): LeadIntelligence {
-    const lastUserMessage = conversation.filter(m => !m.isBot).pop()?.content.toLowerCase() || ''
-    const messageCount = conversation.filter(m => !m.isBot).length
-    
-    let score = currentLeadData.leadScore || 0
-    
-    // Simple scoring rules
-    if (lastUserMessage.includes('ai') || lastUserMessage.includes('machine learning')) score += 20
-    if (lastUserMessage.includes('custom') || lastUserMessage.includes('software')) score += 15
-    if (lastUserMessage.includes('urgent') || lastUserMessage.includes('asap')) score += 15
-    if (lastUserMessage.includes('budget') || lastUserMessage.includes('$')) score += 10
-    if (lastUserMessage.includes('team') || lastUserMessage.includes('company')) score += 10
-
-    const phase = messageCount <= 2 ? 'discovery' : messageCount <= 4 ? 'qualification' : 'closing'
-    const action = score >= 60 ? 'book_consultation' : score >= 40 ? 'qualify_budget' : 'continue'
-
-    return {
-      projectType: 'Software Development',
-      complexityScore: 5,
-      budgetSignals: [],
-      urgencyIndicators: [],
-      technicalSophistication: 5,
-      decisionAuthority: 'medium',
-      leadScore: Math.min(score, 100),
-      nextBestQuestion: 'Could you tell me more about your technical requirements?',
-      conversationPhase: phase,
-      recommendedAction: action
-    }
+  const lastUserMessage = conversation.filter(m => !m.isBot).pop()?.content.toLowerCase() || ''
+  const messageCount = conversation.filter(m => !m.isBot).length
+  
+  let score = currentLeadData.leadScore || 0
+  const budgetSignals: string[] = []
+  const urgencyIndicators: string[] = []
+  
+  // Enhanced scoring rules
+  if (lastUserMessage.includes('ai') || lastUserMessage.includes('machine learning') || lastUserMessage.includes('artificial intelligence')) {
+    score += 20
   }
+  if (lastUserMessage.includes('custom') || lastUserMessage.includes('software') || lastUserMessage.includes('platform')) {
+    score += 15
+  }
+  if (lastUserMessage.includes('urgent') || lastUserMessage.includes('asap') || lastUserMessage.includes('deadline')) {
+    score += 15
+    urgencyIndicators.push('urgent timeline')
+  }
+  if (lastUserMessage.includes('budget') || lastUserMessage.includes('$') || lastUserMessage.includes('investment')) {
+    score += 10
+    budgetSignals.push('budget mentioned')
+  }
+  if (lastUserMessage.includes('team') || lastUserMessage.includes('company') || lastUserMessage.includes('enterprise')) {
+    score += 10
+  }
+  
+  // Determine conversation phase
+  let phase: 'discovery' | 'qualification' | 'closing' = 'discovery'
+  if (messageCount > 3 || score >= 50) {
+    phase = 'qualification'
+  }
+  if (score >= 60) {
+    phase = 'closing'
+  }
+  
+  // Determine action
+  let action: 'continue' | 'qualify_budget' | 'book_consultation' | 'redirect' = 'continue'
+  if (score >= 60) {
+    action = 'book_consultation'
+  } else if (score >= 40) {
+    action = 'qualify_budget'
+  }
+
+  return {
+    projectType: lastUserMessage.includes('ai') ? 'AI Integration' : 'Software Development',
+    complexityScore: Math.min(Math.max(score / 10, 1), 10),
+    budgetSignals,
+    urgencyIndicators,
+    technicalSophistication: lastUserMessage.includes('api') || lastUserMessage.includes('integration') ? 7 : 5,
+    decisionAuthority: lastUserMessage.includes('ceo') || lastUserMessage.includes('founder') || lastUserMessage.includes('we need') ? 'high' : 'medium',
+    leadScore: Math.min(score, 100),
+    nextBestQuestion: score < 40 ? 'What specific technical challenges are you facing?' : 'What timeline are you working with for this project?',
+    conversationPhase: phase,
+    recommendedAction: action
+  }
+}
 
   public async getResponse(conversation: Message[], currentLeadData: LeadData): Promise<AIResponse> {
     try {

@@ -35,6 +35,7 @@ export default function ChatWidget() {
   const [leadData, setLeadData] = useState<LeadData>({ leadScore: 0, qualified: false })
   const [showLeadForm, setShowLeadForm] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
   const conversationEngine = useRef(new AIConversationEngine())
 
   const scrollToBottom = () => {
@@ -72,49 +73,52 @@ export default function ChatWidget() {
   }
 
   useEffect(() => {
-  if (isOpen && messages.length === 0) {
-    addBotMessage(
-      "Hi! I'm here to learn about your technical challenges and see how CrucialCodeLabs might be able to help. What kind of software project or technical challenge are you working on?"
-    )
-  }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [isOpen, messages.length])
+    if (isOpen && messages.length === 0) {
+      addBotMessage(
+        "Hi! I'm here to learn about your technical challenges and see how CrucialCodeLabs might be able to help. What kind of software project or technical challenge are you working on?"
+      )
+    }
+  }, [isOpen, messages.length])
 
   const handleSend = async () => {
-    if (!input.trim() || isLoading) return
+  if (!input.trim() || isLoading) return
 
-    const userMessage = input.trim()
-    setInput('')
-    const userMsg = addUserMessage(userMessage)
-    setIsLoading(true)
+  const userMessage = input.trim()
+  setInput('')
+  const userMsg = addUserMessage(userMessage)
+  setIsLoading(true)
 
-    try {
-      const response = await conversationEngine.current.getResponse(
-        [...messages, userMsg],
-        leadData
-      )
+  try {
+    const response = await conversationEngine.current.getResponse(
+      [...messages, userMsg],
+      leadData
+    )
 
-      if (response.leadData) {
-        setLeadData(prev => ({ ...prev, ...response.leadData }))
-        
-        if (response.leadData && 
-            response.leadData.leadScore && 
-            response.leadData.leadScore >= 60 && 
-            response.leadData.conversationPhase === 'closing') {
-          setShowLeadForm(true)
-        }
+    if (response.leadData) {
+      setLeadData(prev => ({ ...prev, ...response.leadData }))
+      
+      if (response.leadData && 
+          response.leadData.leadScore && 
+          response.leadData.leadScore >= 60 && 
+          response.leadData.conversationPhase === 'closing') {
+        setShowLeadForm(true)
       }
+    }
 
-      addBotMessage(response.message, response.leadData)
-    } catch (error) {
-      console.error('Conversation error:', error)
-      addBotMessage(
-        "I'm having a brief technical issue. Could you try rephrasing that? I'm here to discuss your software development needs."
-      )
-    } finally {
-      setIsLoading(false)
+    addBotMessage(response.message, response.leadData)
+  } catch (error) {
+    console.error('Conversation error:', error)
+    addBotMessage(
+      "I'm having a brief technical issue. Could you try rephrasing that? I'm here to discuss your software development needs."
+    )
+  } finally {
+    setIsLoading(false)
+    // Auto-focus input after response (but not if form is showing)
+    if (!showLeadForm) {
+      setTimeout(() => inputRef.current?.focus(), 100)
     }
   }
+}
 
   const handleContactSubmit = (contactData: { name: string; email: string; phone?: string }) => {
     const finalLeadData = { 
@@ -233,14 +237,14 @@ export default function ChatWidget() {
                 <Bot size={24} />
                 <div>
                   <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '600' }}>
-                    CrucialCodeLabs AI
-                  </h3>
-                  <p style={{ margin: 0, fontSize: '0.75rem', opacity: 0.9 }}>
-                    {leadData.qualified ? 'Qualified Lead! 🎯' : 
-                     leadData.leadScore > 50 ? 'High Interest 🚀' : 
-                     leadData.leadScore > 25 ? 'Engaged Prospect 💡' :
-                     'Technical Consultant'}
-                  </p>
+                Chip - AI Technical Consultant
+                </h3>
+                <p style={{ margin: 0, fontSize: '0.75rem', opacity: 0.9 }}>
+                {leadData.qualified ? 'Qualified Lead! 🎯' : 
+                leadData.leadScore > 50 ? 'High Interest 🚀' : 
+                leadData.leadScore > 25 ? 'Engaged Prospect 💡' :
+                'AI-Powered Assistant'}
+                </p>
                 </div>
               </div>
               {leadData.leadScore > 0 && (
@@ -369,6 +373,7 @@ export default function ChatWidget() {
                   alignItems: 'center'
                 }}>
                   <input
+                    ref={inputRef}
                     type="text"
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
