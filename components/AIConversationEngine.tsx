@@ -46,8 +46,12 @@ export default class AIConversationEngine {
     this.apiKey = process.env.NEXT_PUBLIC_GROK_API_KEY
   }
 
+  private isMobile(): boolean {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+  }
+
   private getSystemPrompt(): string {
-  return `You are Chip, an AI technical consultant for CrucialCodeLabs, a boutique software development and AI integration firm. You're having a conversation with a potential client who visited our website.
+    return `You are Chip, an AI technical consultant for CrucialCodeLabs, a boutique software development and AI integration firm. You're having a conversation with a potential client who visited our website.
 
 IMPORTANT: You are an AI assistant and should be transparent about this. Only introduce yourself by name in your VERY FIRST response. After that, engage naturally in conversation without repeating your name or role. Be honest that you're AI-powered if directly asked, but focus on helping with their technical challenges.
 
@@ -55,9 +59,6 @@ YOUR PERSONA:
 - Name: Chip (AI Technical Consultant)
 - Transparent about being AI while professionally knowledgeable
 - 10+ years of training data in software development and AI integration
-
-YOUR PERSONA:
-- 10+ years experience in custom software development and AI integration
 - Curious and consultative, not pushy or salesy
 - Technically sophisticated but explains concepts clearly
 - Genuinely interested in solving business problems through technology
@@ -162,144 +163,184 @@ RECOMMENDED ACTIONS:
 Return ONLY the JSON object, no other text.`
   }
 
-private async callGrokAPI(messages: Array<{role: string; content: string}>, systemPrompt: string, maxTokens: number = 1000): Promise<string> {    if (!this.apiKey) {
+  private async callGrokAPI(messages: Array<{role: string; content: string}>, systemPrompt: string, maxTokens: number = 1000): Promise<string> {
+    if (!this.apiKey) {
       throw new Error('Grok API key not configured')
     }
 
+    // Mobile-specific timeout and retry logic
+    const isMobileDevice = this.isMobile()
+    const timeout = isMobileDevice ? 15000 : 30000 // Shorter timeout for mobile
+    
     try {
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), timeout)
+
       const response = await fetch(this.baseURL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`
+          'Authorization': `Bearer ${this.apiKey}`,
+          // Add mobile-friendly headers
+          'Accept': 'application/json',
+          'Cache-Control': 'no-cache'
         },
         body: JSON.stringify({
-          model: 'grok-2-latest',
+          model: 'grok-2-1212',
           messages: [
             { role: 'system', content: systemPrompt },
             ...messages
           ],
-          max_tokens: maxTokens,
+          max_tokens: isMobileDevice ? 500 : maxTokens, // Smaller responses for mobile
           temperature: 0.7,
           stream: false
-        })
+        }),
+        signal: controller.signal
       })
 
+      clearTimeout(timeoutId)
+
       if (!response.ok) {
-        const errorData = await response.text()
-        console.error('Grok API error:', response.status, errorData)
-        throw new Error(`Grok API error: ${response.status}`)
+        throw new Error(`API error: ${response.status}`)
       }
 
       const data = await response.json()
-      return data.choices[0]?.message?.content || 'I apologize, but I need a moment to process that. Could you rephrase your question?'
+      return data.choices[0]?.message?.content || 'Could you rephrase that?'
     } catch (error) {
-      console.error('Grok API call failed:', error)
+      // Enhanced mobile fallback
+      if (isMobileDevice) {
+        console.log('Mobile API failed, using enhanced fallback')
+        return this.getMobileFallbackResponse(messages)
+      }
       throw error
     }
   }
 
   private async analyzeLeadIntelligence(conversation: Message[], currentLeadData: LeadData): Promise<LeadIntelligence> {
-  try {
-    const analysisPrompt = this.getAnalysisPrompt(conversation, currentLeadData)
-    const response = await this.callGrokAPI(
-      [{ role: 'user', content: analysisPrompt }],
-      'You are a lead analysis expert. Always respond with valid JSON only. No additional text or explanation.',
-      500
-    )
+    try {
+      const analysisPrompt = this.getAnalysisPrompt(conversation, currentLeadData)
+      const response = await this.callGrokAPI(
+        [{ role: 'user', content: analysisPrompt }],
+        'You are a lead analysis expert. Always respond with valid JSON only. No additional text or explanation.',
+        500
+      )
 
-    // Clean the response - remove any non-JSON text
-    const cleanResponse = response.trim()
-    let jsonStart = cleanResponse.indexOf('{')
-    let jsonEnd = cleanResponse.lastIndexOf('}') + 1
-    
-    if (jsonStart === -1 || jsonEnd === 0) {
-      throw new Error('No JSON found in response')
+      // Clean the response - remove any non-JSON text
+      const cleanResponse = response.trim()
+      let jsonStart = cleanResponse.indexOf('{')
+      let jsonEnd = cleanResponse.lastIndexOf('}') + 1
+      
+      if (jsonStart === -1 || jsonEnd === 0) {
+        throw new Error('No JSON found in response')
+      }
+      
+      const jsonString = cleanResponse.substring(jsonStart, jsonEnd)
+      const analysis: LeadIntelligence = JSON.parse(jsonString)
+      
+      // Validate required fields and provide defaults
+      const validatedAnalysis: LeadIntelligence = {
+        projectType: analysis.projectType || 'Software Development',
+        complexityScore: analysis.complexityScore || 5,
+        budgetSignals: Array.isArray(analysis.budgetSignals) ? analysis.budgetSignals : [],
+        urgencyIndicators: Array.isArray(analysis.urgencyIndicators) ? analysis.urgencyIndicators : [],
+        technicalSophistication: analysis.technicalSophistication || 5,
+        decisionAuthority: analysis.decisionAuthority || 'medium',
+        leadScore: typeof analysis.leadScore === 'number' ? analysis.leadScore : 0,
+        nextBestQuestion: analysis.nextBestQuestion || 'Could you tell me more about your project requirements?',
+        conversationPhase: analysis.conversationPhase || 'discovery',
+        recommendedAction: analysis.recommendedAction || 'continue'
+      }
+      
+      return validatedAnalysis
+    } catch (error) {
+      console.error('Lead analysis failed:', error)
+      
+      // Enhanced fallback analysis
+      return this.fallbackAnalysis(conversation, currentLeadData)
     }
-    
-    const jsonString = cleanResponse.substring(jsonStart, jsonEnd)
-    const analysis: LeadIntelligence = JSON.parse(jsonString)
-    
-    // Validate required fields and provide defaults
-    const validatedAnalysis: LeadIntelligence = {
-      projectType: analysis.projectType || 'Software Development',
-      complexityScore: analysis.complexityScore || 5,
-      budgetSignals: Array.isArray(analysis.budgetSignals) ? analysis.budgetSignals : [],
-      urgencyIndicators: Array.isArray(analysis.urgencyIndicators) ? analysis.urgencyIndicators : [],
-      technicalSophistication: analysis.technicalSophistication || 5,
-      decisionAuthority: analysis.decisionAuthority || 'medium',
-      leadScore: typeof analysis.leadScore === 'number' ? analysis.leadScore : 0,
-      nextBestQuestion: analysis.nextBestQuestion || 'Could you tell me more about your project requirements?',
-      conversationPhase: analysis.conversationPhase || 'discovery',
-      recommendedAction: analysis.recommendedAction || 'continue'
-    }
-    
-    return validatedAnalysis
-  } catch (error) {
-    console.error('Lead analysis failed:', error)
-    
-    // Enhanced fallback analysis
-    return this.fallbackAnalysis(conversation, currentLeadData)
   }
-}
 
   private fallbackAnalysis(conversation: Message[], currentLeadData: LeadData): LeadIntelligence {
-  const lastUserMessage = conversation.filter(m => !m.isBot).pop()?.content.toLowerCase() || ''
-  const messageCount = conversation.filter(m => !m.isBot).length
-  
-  let score = currentLeadData.leadScore || 0
-  const budgetSignals: string[] = []
-  const urgencyIndicators: string[] = []
-  
-  // Enhanced scoring rules
-  if (lastUserMessage.includes('ai') || lastUserMessage.includes('machine learning') || lastUserMessage.includes('artificial intelligence')) {
-    score += 20
-  }
-  if (lastUserMessage.includes('custom') || lastUserMessage.includes('software') || lastUserMessage.includes('platform')) {
-    score += 15
-  }
-  if (lastUserMessage.includes('urgent') || lastUserMessage.includes('asap') || lastUserMessage.includes('deadline')) {
-    score += 15
-    urgencyIndicators.push('urgent timeline')
-  }
-  if (lastUserMessage.includes('budget') || lastUserMessage.includes('$') || lastUserMessage.includes('investment')) {
-    score += 10
-    budgetSignals.push('budget mentioned')
-  }
-  if (lastUserMessage.includes('team') || lastUserMessage.includes('company') || lastUserMessage.includes('enterprise')) {
-    score += 10
-  }
-  
-  // Determine conversation phase
-  let phase: 'discovery' | 'qualification' | 'closing' = 'discovery'
-  if (messageCount > 3 || score >= 50) {
-    phase = 'qualification'
-  }
-  if (score >= 60) {
-    phase = 'closing'
-  }
-  
-  // Determine action
-  let action: 'continue' | 'qualify_budget' | 'book_consultation' | 'redirect' = 'continue'
-  if (score >= 60) {
-    action = 'book_consultation'
-  } else if (score >= 40) {
-    action = 'qualify_budget'
+    const lastUserMessage = conversation.filter(m => !m.isBot).pop()?.content.toLowerCase() || ''
+    const messageCount = conversation.filter(m => !m.isBot).length
+    
+    let score = currentLeadData.leadScore || 0
+    const budgetSignals: string[] = []
+    const urgencyIndicators: string[] = []
+    
+    // Enhanced scoring rules
+    if (lastUserMessage.includes('ai') || lastUserMessage.includes('machine learning') || lastUserMessage.includes('artificial intelligence')) {
+      score += 20
+    }
+    if (lastUserMessage.includes('custom') || lastUserMessage.includes('software') || lastUserMessage.includes('platform')) {
+      score += 15
+    }
+    if (lastUserMessage.includes('urgent') || lastUserMessage.includes('asap') || lastUserMessage.includes('deadline')) {
+      score += 15
+      urgencyIndicators.push('urgent timeline')
+    }
+    if (lastUserMessage.includes('budget') || lastUserMessage.includes('$') || lastUserMessage.includes('investment')) {
+      score += 10
+      budgetSignals.push('budget mentioned')
+    }
+    if (lastUserMessage.includes('team') || lastUserMessage.includes('company') || lastUserMessage.includes('enterprise')) {
+      score += 10
+    }
+    
+    // Determine conversation phase
+    let phase: 'discovery' | 'qualification' | 'closing' = 'discovery'
+    if (messageCount > 3 || score >= 50) {
+      phase = 'qualification'
+    }
+    if (score >= 60) {
+      phase = 'closing'
+    }
+    
+    // Determine action
+    let action: 'continue' | 'qualify_budget' | 'book_consultation' | 'redirect' = 'continue'
+    if (score >= 60) {
+      action = 'book_consultation'
+    } else if (score >= 40) {
+      action = 'qualify_budget'
+    }
+
+    return {
+      projectType: lastUserMessage.includes('ai') ? 'AI Integration' : 'Software Development',
+      complexityScore: Math.min(Math.max(score / 10, 1), 10),
+      budgetSignals,
+      urgencyIndicators,
+      technicalSophistication: lastUserMessage.includes('api') || lastUserMessage.includes('integration') ? 7 : 5,
+      decisionAuthority: lastUserMessage.includes('ceo') || lastUserMessage.includes('founder') || lastUserMessage.includes('we need') ? 'high' : 'medium',
+      leadScore: Math.min(score, 100),
+      nextBestQuestion: score < 40 ? 'What specific technical challenges are you facing?' : 'What timeline are you working with for this project?',
+      conversationPhase: phase,
+      recommendedAction: action
+    }
   }
 
-  return {
-    projectType: lastUserMessage.includes('ai') ? 'AI Integration' : 'Software Development',
-    complexityScore: Math.min(Math.max(score / 10, 1), 10),
-    budgetSignals,
-    urgencyIndicators,
-    technicalSophistication: lastUserMessage.includes('api') || lastUserMessage.includes('integration') ? 7 : 5,
-    decisionAuthority: lastUserMessage.includes('ceo') || lastUserMessage.includes('founder') || lastUserMessage.includes('we need') ? 'high' : 'medium',
-    leadScore: Math.min(score, 100),
-    nextBestQuestion: score < 40 ? 'What specific technical challenges are you facing?' : 'What timeline are you working with for this project?',
-    conversationPhase: phase,
-    recommendedAction: action
+  private getMobileFallbackResponse(messages: Array<{role: string; content: string}>): string {
+    const lastMessage = messages[messages.length - 1]?.content.toLowerCase() || ''
+    
+    // Smart mobile fallbacks based on keywords
+    if (lastMessage.includes('ai') || lastMessage.includes('machine learning')) {
+      return "That's an exciting AI project! We specialize in AI integration and have helped many companies implement intelligent solutions. What specific AI capabilities are you looking to add to your platform?"
+    }
+    
+    if (lastMessage.includes('website') || lastMessage.includes('web')) {
+      return "Web development is one of our core services. Are you looking for a complete rebuild, specific functionality additions, or perhaps integrating modern features like AI chatbots?"
+    }
+    
+    if (lastMessage.includes('app') || lastMessage.includes('mobile')) {
+      return "Mobile applications are a great way to engage users. Are you thinking iOS, Android, or a cross-platform solution? What's the main purpose of the app?"
+    }
+    
+    if (lastMessage.includes('budget') || lastMessage.includes('cost') || lastMessage.includes('$')) {
+      return "I appreciate you thinking about investment. Our projects typically range from $8K for focused solutions up to $50K+ for comprehensive AI implementations. What scope are you considering?"
+    }
+    
+    // Default professional response
+    return "That sounds like an interesting challenge! Could you tell me more about the specific technical requirements or business goals you're trying to achieve? This will help me understand how we can best assist you."
   }
-}
 
   public async getResponse(conversation: Message[], currentLeadData: LeadData): Promise<AIResponse> {
     try {
