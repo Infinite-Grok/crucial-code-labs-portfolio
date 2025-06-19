@@ -43,8 +43,14 @@ export default class AIConversationEngine {
   private baseURL = 'https://api.together.xyz/v1/chat/completions'
 
   constructor() {
-    this.apiKey = process.env.NEXT_PUBLIC_TOGETHER_API_KEY
-  }
+  this.apiKey = process.env.NEXT_PUBLIC_TOGETHER_API_KEY
+  
+  // TEMPORARY DEBUG - REMOVE AFTER TESTING
+  console.log('🔍 Environment Debug:')
+  console.log('API Key from env:', this.apiKey ? 'EXISTS' : 'MISSING')
+  console.log('API Key first 10 chars:', this.apiKey?.substring(0, 10))
+  console.log('All env vars:', Object.keys(process.env).filter(k => k.startsWith('NEXT_PUBLIC')))
+}
 
   private isMobile(): boolean {
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
